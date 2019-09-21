@@ -13,9 +13,9 @@ public class CPURaymarching : MonoBehaviour
 	[Space]
 
 	[SerializeField] private int resolution = 480;
-	[Range(0, 100)]
+	[Range(1, 100)]
 	[SerializeField] private int maxSteps = 100;
-	[Range(0f, 100f)]
+	[Range(1f, 100f)]
 	[SerializeField] private float maxDistance = 100f;
 	[Range(0.005f, 1f)]
 	[SerializeField] private float surfaceDistance = 0.01f;
@@ -30,7 +30,8 @@ public class CPURaymarching : MonoBehaviour
 
 	[SerializeField] private Transform cameraTransform;
 	[SerializeField] private Transform lightTransform;
-	[SerializeField] private Transform sphereTransform;
+	[SerializeField] private Transform shapeTransform;
+	[SerializeField] private Transform torusTransform;
 	[SerializeField] private Transform planeTransform;
 
 	private Texture2D texture;
@@ -63,11 +64,13 @@ public class CPURaymarching : MonoBehaviour
 			maxSteps = maxSteps,
 			maxDistance = maxDistance,
 			surfaceDistance = surfaceDistance,
+			time = Time.time,
 			fogExponent = fogExponent,
 			fogColor = float3(fogColor.r, fogColor.g, fogColor.g),
 			worldToCamera = cameraTransform.worldToLocalMatrix,
 			worldToLight = lightTransform.worldToLocalMatrix,
-			worldToSphere = sphereTransform.worldToLocalMatrix,
+			worldToShape = shapeTransform.worldToLocalMatrix,
+			worldToTorus = torusTransform.worldToLocalMatrix,
 			worldToPlane = planeTransform.worldToLocalMatrix
 		}.Schedule(pixels.Length, resolution / 12);
 
@@ -75,7 +78,7 @@ public class CPURaymarching : MonoBehaviour
 		texture.Apply(false);
 	}
 
-	[BurstCompile(CompileSynchronously = true)]
+	[BurstCompile(CompileSynchronously = true, FloatMode = FloatMode.Fast)]
 	private struct RenderJob : IJobParallelFor
 	{
 		[WriteOnly]
@@ -85,10 +88,11 @@ public class CPURaymarching : MonoBehaviour
 		public float maxDistance;
 		public float surfaceDistance;
 
+		public float time;
 		public float fogExponent;
 		public float3 fogColor;
 
-		public float4x4 worldToCamera, worldToLight, worldToSphere, worldToPlane;
+		public float4x4 worldToCamera, worldToLight, worldToShape, worldToTorus, worldToPlane;
 
 		public void Execute(int index)
 		{
@@ -103,9 +107,7 @@ public class CPURaymarching : MonoBehaviour
 			var cameraPosition = transform(cameraToWorld, float3(0));
 			var rayDirection = rotate(cameraToWorld, normalize(float3(suv.x, suv.y, 1f)));
 
-			var steps = 0;
-
-			var distance = Raymarch(cameraPosition, rayDirection, out steps);
+			var distance = Raymarch(cameraPosition, rayDirection);
 			var hitPoint = cameraPosition + rayDirection * distance;
 			var lighting = GetLight(hitPoint);
 
@@ -117,7 +119,7 @@ public class CPURaymarching : MonoBehaviour
 			pixels[index] = new Color32((byte)(color.x * 255), (byte)(color.y * 255), (byte)(color.z * 255), 255);
 		}
 
-		private float Raymarch(float3 origin, float3 direction, out int steps)
+		private float Raymarch(float3 origin, float3 direction)
 		{
 			float currentDistance = 0f;
 
@@ -132,17 +134,22 @@ public class CPURaymarching : MonoBehaviour
 					break;
 			}
 
-			steps = i;
-
 			return currentDistance;
 		}
 
+		// Custom shit here. This is where you define the scene.
 		private float GetDistance(float3 point)
 		{
-			var sphereDistance = sphere(transform(worldToSphere, point), 1f);
+			var f = float4x4(true);
+
+			var shapeDistance = roundBox(transform(worldToShape, point), float3(0.5f), 0.1f);
+			var displacement = sin(5f * point.x) * sin(5f * point.y) * sin(5f * point.z) / 10f;
+			shapeDistance += displacement;
+
+			var torusDistance = torus(transform(worldToTorus, point), float2(1f, 0.25f));
 			var planeDistance = plane(transform(worldToPlane, point), up());
 
-			return min(sphereDistance, planeDistance);
+			return smoothUnion(smoothUnion(torusDistance, planeDistance, 0.5f), shapeDistance, 0.5f);
 		}
 
 		private float GetLight(float3 point)
@@ -153,11 +160,7 @@ public class CPURaymarching : MonoBehaviour
 			var normal = GetNormal(point);
 			var lighting = saturate(dot(normal, lightDirection));
 
-			var steps = 0;
-			var d = Raymarch(point + normal * surfaceDistance * 2f, lightDirection, out steps);
-			if (d < length(lightPosition - point))
-				lighting *= 0.1f;
-			lighting *= 1f - (steps / maxSteps);
+			var d = Raymarch(point + normal * surfaceDistance * 2f, lightDirection);
 			return lighting;
 		}
 

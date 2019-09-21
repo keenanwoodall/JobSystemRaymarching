@@ -129,8 +129,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 94015827}
+  - component: {fileID: 94015828}
   m_Layer: 0
-  m_Name: Sphere
+  m_Name: Shape
   m_TagString: Untagged
   m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
@@ -150,6 +151,20 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &94015828
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 94015826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2052fd12eaef2234a9ef5d3ea466fc27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rotation: {x: 45, y: 45, z: 45}
+  space: 0
 --- !u!1 &109558452
 GameObject:
   m_ObjectHideFlags: 0
@@ -279,15 +294,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   meshRenderer: {fileID: 2039172449}
-  resolution: 512
+  resolution: 340
   maxSteps: 100
-  maxDistance: 15
+  maxDistance: 20
   surfaceDistance: 0.01
-  fogExponent: 0.5
+  fogExponent: 0.75
   fogColor: {r: 0.12103952, g: 0.2155193, b: 0.3018868, a: 1}
   cameraTransform: {fileID: 109558453}
   lightTransform: {fileID: 348010295}
-  sphereTransform: {fileID: 94015827}
+  shapeTransform: {fileID: 94015827}
+  torusTransform: {fileID: 1223967385}
   planeTransform: {fileID: 943373456}
 --- !u!1 &348010294
 GameObject:
@@ -362,8 +378,53 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1223967384
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1223967385}
+  - component: {fileID: 1223967386}
+  m_Layer: 0
+  m_Name: Torus
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1223967385
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1223967384}
+  m_LocalRotation: {x: -0.08715578, y: 0, z: 0, w: 0.9961947}
+  m_LocalPosition: {x: 0, y: -0.25, z: 2.5}
+  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: -10, y: 0, z: 0}
+--- !u!114 &1223967386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1223967384}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8644e99ae794c1444a595103859a03d2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  magnitude: 0.75
+  speed: 3
 --- !u!1 &2039172447
 GameObject:
   m_ObjectHideFlags: 0
