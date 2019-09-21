@@ -22,9 +22,10 @@ public class CPURaymarching : MonoBehaviour
 
 	[Space]
 
+	[SerializeField] private Color surfaceColor = Color.green;
+	[SerializeField] private Color fogColor = Color.black;
 	[Range(0.1f, 10f)]
 	[SerializeField] private float fogExponent = 2f;
-	[SerializeField] private Color fogColor = Color.black;
 
 	[Space]
 
@@ -47,7 +48,7 @@ public class CPURaymarching : MonoBehaviour
 			format: UnityEngine.Experimental.Rendering.DefaultFormat.LDR, 
 			flags: UnityEngine.Experimental.Rendering.TextureCreationFlags.None
 		);
-		texture.filterMode = FilterMode.Trilinear;
+		texture.filterMode = FilterMode.Point;
 
 		meshRenderer.material.mainTexture = texture;
 
@@ -64,9 +65,10 @@ public class CPURaymarching : MonoBehaviour
 			maxSteps = maxSteps,
 			maxDistance = maxDistance,
 			surfaceDistance = surfaceDistance,
-			time = Time.time,
-			fogExponent = fogExponent,
+			time = Time.time * 2f,
+			surfaceColor = float3(surfaceColor.r, surfaceColor.g, surfaceColor.b),
 			fogColor = float3(fogColor.r, fogColor.g, fogColor.g),
+			fogExponent = fogExponent,
 			worldToCamera = cameraTransform.worldToLocalMatrix,
 			worldToLight = lightTransform.worldToLocalMatrix,
 			worldToShape = shapeTransform.worldToLocalMatrix,
@@ -89,8 +91,9 @@ public class CPURaymarching : MonoBehaviour
 		public float surfaceDistance;
 
 		public float time;
-		public float fogExponent;
+		public float3 surfaceColor;
 		public float3 fogColor;
+		public float fogExponent;
 
 		public float4x4 worldToCamera, worldToLight, worldToShape, worldToTorus, worldToPlane;
 
@@ -108,11 +111,13 @@ public class CPURaymarching : MonoBehaviour
 			var rayDirection = rotate(cameraToWorld, normalize(float3(suv.x, suv.y, 1f)));
 
 			var distance = Raymarch(cameraPosition, rayDirection);
-			var hitPoint = cameraPosition + rayDirection * distance;
-			var lighting = GetLight(hitPoint);
+			var point = cameraPosition + rayDirection * distance;
+			
+			var normal = GetNormal(point);
+			var lighting = lerp(0f, 1f, GetLight(point, normal));
 
-			var color = float3(lighting);
-
+			var color = surfaceColor;
+			color *= lighting;
 			color = lerp(color, fogColor, pow(clamp(distance, 0f, maxDistance) / maxDistance, fogExponent));
 
 			color = saturate(color);
@@ -140,27 +145,27 @@ public class CPURaymarching : MonoBehaviour
 		// Custom shit here. This is where you define the scene.
 		private float GetDistance(float3 point)
 		{
-			var f = float4x4(true);
-
-			var shapeDistance = roundBox(transform(worldToShape, point), float3(0.5f), 0.1f);
-			var displacement = sin(5f * point.x) * sin(5f * point.y) * sin(5f * point.z) / 10f;
-			shapeDistance += displacement;
+			var shapeDistance = roundBox(transform(worldToShape, point), float3(0.5f), 0.3f);
 
 			var torusDistance = torus(transform(worldToTorus, point), float2(1f, 0.25f));
+
 			var planeDistance = plane(transform(worldToPlane, point), up());
 
 			return smoothUnion(smoothUnion(torusDistance, planeDistance, 0.5f), shapeDistance, 0.5f);
 		}
 
-		private float GetLight(float3 point)
+		private float GetLight(float3 point, float3 normal)
 		{
 			var lightToWorld = inverse(worldToLight);
 			var lightPosition = transform(lightToWorld, float3(0));
 			var lightDirection = normalize(lightPosition - point);
-			var normal = GetNormal(point);
 			var lighting = saturate(dot(normal, lightDirection));
 
 			var d = Raymarch(point + normal * surfaceDistance * 2f, lightDirection);
+
+			if (d < length(point - lightPosition))
+				lighting = 0f;
+
 			return lighting;
 		}
 

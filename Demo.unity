@@ -294,12 +294,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   meshRenderer: {fileID: 2039172449}
-  resolution: 340
+  resolution: 256
   maxSteps: 100
   maxDistance: 20
   surfaceDistance: 0.01
-  fogExponent: 0.75
-  fogColor: {r: 0.12103952, g: 0.2155193, b: 0.3018868, a: 1}
+  surfaceColor: {r: 1, g: 1, b: 1, a: 1}
+  fogColor: {r: 0.21698111, g: 0.21698111, b: 0.21698111, a: 1}
+  fogExponent: 1
   cameraTransform: {fileID: 109558453}
   lightTransform: {fileID: 348010295}
   shapeTransform: {fileID: 94015827}
@@ -348,8 +349,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecccedf97567c344e8337429eb9adfd3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  radius: 4
-  speed: 2
+  radius: 3
+  speed: 1
 --- !u!1 &943373455
 GameObject:
   m_ObjectHideFlags: 0
@@ -404,13 +405,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1223967384}
-  m_LocalRotation: {x: -0.08715578, y: 0, z: 0, w: 0.9961947}
-  m_LocalPosition: {x: 0, y: -0.25, z: 2.5}
-  m_LocalScale: {x: 1.25, y: 1.25, z: 1.25}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.75, z: 3}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 3
-  m_LocalEulerAnglesHint: {x: -10, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1223967386
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -420,11 +421,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1223967384}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8644e99ae794c1444a595103859a03d2, type: 3}
+  m_Script: {fileID: 11500000, guid: 2052fd12eaef2234a9ef5d3ea466fc27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  magnitude: 0.75
-  speed: 3
+  rotation: {x: -90, y: 0, z: 0}
+  space: 0
 --- !u!1 &2039172447
 GameObject:
   m_ObjectHideFlags: 0
