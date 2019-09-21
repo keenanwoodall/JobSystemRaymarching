@@ -4,19 +4,33 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Mathematics;
 using static Unity.Mathematics.math;
+using static Distance;
 
 public class CPURaymarching : MonoBehaviour
 {
 	[SerializeField] private MeshRenderer meshRenderer;
+
 	[Space]
+
 	[SerializeField] private int resolution = 480;
-	[SerializeField, Range(0, 100)] private int maxSteps = 100;
-	[SerializeField, Range(0f, 100f)] private float maxDistance = 100f;
-	[SerializeField, Range(0.005f, 1f)] private float surfaceDistance = 0.01f;
+	[Range(0, 100)]
+	[SerializeField] private int maxSteps = 100;
+	[Range(0f, 100f)]
+	[SerializeField] private float maxDistance = 100f;
+	[Range(0.005f, 1f)]
+	[SerializeField] private float surfaceDistance = 0.01f;
+
 	[Space]
-	[SerializeField] private Transform cameraPositioner;
-	[SerializeField] private Transform spherePositioner;
-	[SerializeField] private Transform planePositioner;
+
+	[Range(1f, 10f)]
+	[SerializeField] private float fogExponent = 2f;
+
+	[Space]
+
+	[SerializeField] private Transform cameraTransform;
+	[SerializeField] private Transform lightTransform;
+	[SerializeField] private Transform sphereTransform;
+	[SerializeField] private Transform planeTransform;
 
 	private Texture2D texture;
 
@@ -24,7 +38,13 @@ public class CPURaymarching : MonoBehaviour
 
 	private void OnEnable()
 	{
-		texture = new Texture2D(resolution, resolution);
+		texture = new Texture2D
+		(
+			width: resolution, 
+			height: resolution, 
+			format: UnityEngine.Experimental.Rendering.DefaultFormat.LDR, 
+			flags: UnityEngine.Experimental.Rendering.TextureCreationFlags.None
+		);
 		texture.filterMode = FilterMode.Point;
 
 		meshRenderer.material.mainTexture = texture;
@@ -37,19 +57,20 @@ public class CPURaymarching : MonoBehaviour
 		var handle = new RenderJob
 		{
 			pixels = pixels,
-			width = resolution,
-			height = resolution,
+			width = texture.width,
+			height = texture.height,
 			maxSteps = maxSteps,
 			maxDistance = maxDistance,
 			surfaceDistance = surfaceDistance,
-			cameraPosition = cameraPositioner.position,
-			cameraRotation = cameraPositioner.rotation,
-			spherePosition = spherePositioner.position,
-			planePosition = planePositioner.position
+			fogExponent = fogExponent,
+			worldToCamera = cameraTransform.worldToLocalMatrix,
+			worldToLight = lightTransform.worldToLocalMatrix,
+			worldToSphere = sphereTransform.worldToLocalMatrix,
+			worldToPlane = planeTransform.worldToLocalMatrix
 		}.Schedule(pixels.Length, resolution / 12);
 
 		handle.Complete();
-		texture.Apply();
+		texture.Apply(false);
 	}
 
 	[BurstCompile(CompileSynchronously = true)]
@@ -62,10 +83,9 @@ public class CPURaymarching : MonoBehaviour
 		public float maxDistance;
 		public float surfaceDistance;
 
-		public float3 cameraPosition;
-		public quaternion cameraRotation;
-		public float3 spherePosition;
-		public float3 planePosition;
+		public float fogExponent;
+
+		public float4x4 worldToCamera, worldToLight, worldToSphere, worldToPlane;
 
 		public void Execute(int index)
 		{
@@ -76,10 +96,15 @@ public class CPURaymarching : MonoBehaviour
 			// -1 -> 1
 			var suv = (uv - 0.5f) * 2f;
 
-			var rayDirection = rotate(cameraRotation, normalize(float3(suv.x, suv.y, 1f)));
+			var cameraToWorld = inverse(worldToCamera);
+			var cameraPosition = transform(cameraToWorld, float3(0));
+			var rayDirection = rotate(cameraToWorld, normalize(float3(suv.x, suv.y, 1f)));
 
 			var distance = Raymarch(cameraPosition, rayDirection);
-			var color = float3(distance / maxDistance);
+			var hitPoint = cameraPosition + rayDirection * distance;
+			var lighting = GetLight(hitPoint);
+
+			var color = float3(lighting);//float3(pow(clamp(distance, 0f, maxDistance) / maxDistance, fogExponent));
 
 			color = saturate(color);
 			pixels[index] = new Color32((byte)(color.x * 255), (byte)(color.y * 255), (byte)(color.z * 255), 255);
@@ -104,12 +129,28 @@ public class CPURaymarching : MonoBehaviour
 
 		private float GetDistance(float3 point)
 		{
-			var sphereRadius = 1f;
-
-			var sphereDistance = length(point - spherePosition) - sphereRadius;
-			var planeDistance = point.y - planePosition.y;
+			var sphereDistance = sphere(transform(worldToSphere, point), 1f);
+			var planeDistance = plane(transform(worldToPlane, point), up());
 
 			return min(sphereDistance, planeDistance);
+		}
+
+		private float GetLight(float3 point)
+		{
+			var lightToWorld = inverse(worldToLight);
+			var lightPosition = transform(lightToWorld, float3(0));
+			var lightDirection = normalize(lightPosition - point);
+			var normal = GetNormal(point);
+			return saturate(dot(normal, lightDirection));
+		}
+
+		private float3 GetNormal(float3 point)
+		{
+			var distance = GetDistance(point);
+			var e = float2(0.01f, 0f);
+			var n = distance - float3(GetDistance(point - e.xyy), GetDistance(point - e.yxy), GetDistance(point - e.yyx));
+
+			return normalize(n);
 		}
 	}
 }
