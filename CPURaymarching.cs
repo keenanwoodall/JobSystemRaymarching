@@ -22,8 +22,9 @@ public class CPURaymarching : MonoBehaviour
 
 	[Space]
 
-	[Range(1f, 10f)]
+	[Range(0.1f, 10f)]
 	[SerializeField] private float fogExponent = 2f;
+	[SerializeField] private Color fogColor = Color.black;
 
 	[Space]
 
@@ -45,7 +46,7 @@ public class CPURaymarching : MonoBehaviour
 			format: UnityEngine.Experimental.Rendering.DefaultFormat.LDR, 
 			flags: UnityEngine.Experimental.Rendering.TextureCreationFlags.None
 		);
-		texture.filterMode = FilterMode.Point;
+		texture.filterMode = FilterMode.Trilinear;
 
 		meshRenderer.material.mainTexture = texture;
 
@@ -63,6 +64,7 @@ public class CPURaymarching : MonoBehaviour
 			maxDistance = maxDistance,
 			surfaceDistance = surfaceDistance,
 			fogExponent = fogExponent,
+			fogColor = float3(fogColor.r, fogColor.g, fogColor.g),
 			worldToCamera = cameraTransform.worldToLocalMatrix,
 			worldToLight = lightTransform.worldToLocalMatrix,
 			worldToSphere = sphereTransform.worldToLocalMatrix,
@@ -84,6 +86,7 @@ public class CPURaymarching : MonoBehaviour
 		public float surfaceDistance;
 
 		public float fogExponent;
+		public float3 fogColor;
 
 		public float4x4 worldToCamera, worldToLight, worldToSphere, worldToPlane;
 
@@ -100,21 +103,26 @@ public class CPURaymarching : MonoBehaviour
 			var cameraPosition = transform(cameraToWorld, float3(0));
 			var rayDirection = rotate(cameraToWorld, normalize(float3(suv.x, suv.y, 1f)));
 
-			var distance = Raymarch(cameraPosition, rayDirection);
+			var steps = 0;
+
+			var distance = Raymarch(cameraPosition, rayDirection, out steps);
 			var hitPoint = cameraPosition + rayDirection * distance;
 			var lighting = GetLight(hitPoint);
 
-			var color = float3(lighting);//float3(pow(clamp(distance, 0f, maxDistance) / maxDistance, fogExponent));
+			var color = float3(lighting);
+
+			color = lerp(color, fogColor, pow(clamp(distance, 0f, maxDistance) / maxDistance, fogExponent));
 
 			color = saturate(color);
 			pixels[index] = new Color32((byte)(color.x * 255), (byte)(color.y * 255), (byte)(color.z * 255), 255);
 		}
 
-		private float Raymarch(float3 origin, float3 direction)
+		private float Raymarch(float3 origin, float3 direction, out int steps)
 		{
 			float currentDistance = 0f;
 
-			for (int i = 0; i < maxSteps; i++)
+			int i = 0;
+			for (i = 0; i < maxSteps; i++)
 			{
 				var newPoint = origin + direction * currentDistance;
 				var newDistance = GetDistance(newPoint);
@@ -123,6 +131,8 @@ public class CPURaymarching : MonoBehaviour
 				if (currentDistance > maxDistance || newDistance < surfaceDistance)
 					break;
 			}
+
+			steps = i;
 
 			return currentDistance;
 		}
@@ -141,7 +151,14 @@ public class CPURaymarching : MonoBehaviour
 			var lightPosition = transform(lightToWorld, float3(0));
 			var lightDirection = normalize(lightPosition - point);
 			var normal = GetNormal(point);
-			return saturate(dot(normal, lightDirection));
+			var lighting = saturate(dot(normal, lightDirection));
+
+			var steps = 0;
+			var d = Raymarch(point + normal * surfaceDistance * 2f, lightDirection, out steps);
+			if (d < length(lightPosition - point))
+				lighting *= 0.1f;
+			lighting *= 1f - (steps / maxSteps);
+			return lighting;
 		}
 
 		private float3 GetNormal(float3 point)
