@@ -14,6 +14,6 @@
     ],
     "dependencies": 
     {
-        "com.unity.burst": "1.1.2",
+        "com.unity.burst": "1.1.2"
     }
 }
