@@ -65,7 +65,7 @@ public class CPURaymarching : MonoBehaviour
 			maxSteps = maxSteps,
 			maxDistance = maxDistance,
 			surfaceDistance = surfaceDistance,
-			time = Time.time * 2f,
+			time = Time.time,
 			surfaceColor = float3(surfaceColor.r, surfaceColor.g, surfaceColor.b),
 			fogColor = float3(fogColor.r, fogColor.g, fogColor.g),
 			fogExponent = fogExponent,
@@ -146,10 +146,9 @@ public class CPURaymarching : MonoBehaviour
 		private float GetDistance(float3 point)
 		{
 			var shapeDistance = roundBox(transform(worldToShape, point), float3(0.5f), 0.3f);
-
 			var torusDistance = torus(transform(worldToTorus, point), float2(1f, 0.25f));
-
 			var planeDistance = plane(transform(worldToPlane, point), up());
+			planeDistance += sin(0.5f * point.x + time * 2f) / 2f;
 
 			return smoothUnion(smoothUnion(torusDistance, planeDistance, 0.5f), shapeDistance, 0.5f);
 		}
@@ -172,7 +171,7 @@ public class CPURaymarching : MonoBehaviour
 		private float3 GetNormal(float3 point)
 		{
 			var distance = GetDistance(point);
-			var e = float2(0.01f, 0f);
+			var e = float2(0.05f, 0f);
 			var n = distance - float3(GetDistance(point - e.xyy), GetDistance(point - e.yxy), GetDistance(point - e.yyx));
 
 			return normalize(n);

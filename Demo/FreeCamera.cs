@@ -33,7 +33,7 @@ public class FreeCamera : MonoBehaviour
 
         float inputVertical = Input.GetAxis(kVertical);
         float inputHorizontal = Input.GetAxis(kHorizontal);
-        float inputYAxis = Input.GetKey(KeyCode.E) ? 1f : (Input.GetKey(KeyCode.LeftControl) ? -1f : 0f);
+        float inputYAxis = Input.GetKey(KeyCode.E) ? 1f : (Input.GetKey(KeyCode.Q) ? -1f : 0f);
 
         bool moved = inputRotateAxisX != 0.0f || inputRotateAxisY != 0.0f || inputVertical != 0.0f || inputHorizontal != 0.0f || inputYAxis != 0.0f;
         if (moved)
