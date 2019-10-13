@@ -69,8 +69,10 @@ public class CPURaymarching : MonoBehaviour
 			surfaceColor = float3(surfaceColor.r, surfaceColor.g, surfaceColor.b),
 			fogColor = float3(fogColor.r, fogColor.g, fogColor.g),
 			fogExponent = fogExponent,
-			worldToCamera = cameraTransform.worldToLocalMatrix,
 			worldToLight = lightTransform.worldToLocalMatrix,
+			lightToWorld = lightTransform.localToWorldMatrix,
+			cameraToWorld = cameraTransform.localToWorldMatrix,
+			worldToCamera = cameraTransform.worldToLocalMatrix,
 			worldToShape = shapeTransform.worldToLocalMatrix,
 			worldToTorus = torusTransform.worldToLocalMatrix,
 			worldToPlane = planeTransform.worldToLocalMatrix
@@ -95,7 +97,7 @@ public class CPURaymarching : MonoBehaviour
 		public float3 fogColor;
 		public float fogExponent;
 
-		public float4x4 worldToCamera, worldToLight, worldToShape, worldToTorus, worldToPlane;
+		public float4x4 lightToWorld, worldToLight, cameraToWorld, worldToCamera, worldToShape, worldToTorus, worldToPlane;
 
 		public void Execute(int index)
 		{
@@ -106,7 +108,6 @@ public class CPURaymarching : MonoBehaviour
 			// -1 -> 1
 			var suv = (uv - 0.5f) * 2f;
 
-			var cameraToWorld = inverse(worldToCamera);
 			var cameraPosition = transform(cameraToWorld, float3(0));
 			var rayDirection = rotate(cameraToWorld, normalize(float3(suv.x, suv.y, 1f)));
 
@@ -155,7 +156,6 @@ public class CPURaymarching : MonoBehaviour
 
 		private float GetLight(float3 point, float3 normal)
 		{
-			var lightToWorld = inverse(worldToLight);
 			var lightPosition = transform(lightToWorld, float3(0));
 			var lightDirection = normalize(lightPosition - point);
 			var lighting = saturate(dot(normal, lightDirection));
